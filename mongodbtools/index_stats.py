@@ -1,15 +1,17 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+# coding=utf-8
 
 """
 This script prints some basic collection stats about the size of the
 collections and their indexes.
 """
 
-from prettytable import PrettyTable
-import psutil
-from pymongo import MongoClient
-from pymongo import ReadPreference
 from optparse import OptionParser
+
+import psutil
+from prettytable import PrettyTable
+from pymongo import MongoClient
+
 
 def compute_signature(index):
     signature = index["ns"]
@@ -17,9 +19,11 @@ def compute_signature(index):
         signature += "%s_%s" % (key, index["key"][key])
     return signature
 
+
 def get_collection_stats(database, collection):
-    print "Checking DB: %s" % collection.full_name
+    print("Checking DB: %s" % collection.full_name)
     return database.command("collstats", collection.name)
+
 
 # From http://www.5dollarwhitebox.org/drupal/node/84
 def convert_bytes(bytes):
@@ -41,9 +45,11 @@ def convert_bytes(bytes):
         size = '%.2fb' % bytes
     return size
 
+
 def get_cli_options():
     parser = OptionParser(usage="usage: python %prog [options]",
-                          description="""This script prints some basic collection stats about the size of the collections and their indexes.""")
+                          description="""This script prints some basic collection stats 
+                          about the size of the collections and their indexes.""")
 
     parser.add_option("-H", "--host",
                       dest="host",
@@ -75,6 +81,7 @@ def get_cli_options():
 
     return options
 
+
 def get_client(host, port, username, password):
     userPass = ""
     if username and password:
@@ -83,17 +90,17 @@ def get_client(host, port, username, password):
     mongoURI = "mongodb://" + userPass + host + ":" + str(port)
     return MongoClient(mongoURI)
 
+
 def main(options):
     summary_stats = {
-        "count" : 0,
-        "size" : 0,
-        "indexSize" : 0
+        "count": 0,
+        "size": 0,
+        "indexSize": 0
     }
     all_stats = []
+    all_db_stats = {}
 
     client = get_client(options.host, options.port, options.user, options.password)
-
-    all_db_stats = {}
 
     databases = []
     if options.database:
@@ -117,14 +124,14 @@ def main(options):
             summary_stats["size"] += stats["size"]
             summary_stats["indexSize"] += stats.get("totalIndexSize", 0)
 
-    x = PrettyTable(["Collection", "Index","% Size", "Index Size"])
+    x = PrettyTable(["Collection", "Index", "% Size", "Index Size"])
     x.align["Collection"] = "l"
     x.align["Index"] = "l"
     x.align["% Size"] = "r"
     x.align["Index Size"] = "r"
     x.padding_width = 1
 
-    print
+    print()
 
     index_size_mapping = {}
     for db in all_db_stats:
@@ -135,18 +142,18 @@ def main(options):
             for index in stat["indexSizes"]:
                 index_size = stat["indexSizes"].get(index, 0)
                 row = [stat["ns"], index,
-                          "%0.1f%%" % ((index_size / float(summary_stats["indexSize"])) * 100),
-                  convert_bytes(index_size)]
+                       "%0.1f%%" % ((index_size / float(
+                           summary_stats["indexSize"])) * 100),
+                       convert_bytes(index_size)]
                 index_size_mapping[index_size] = row
                 x.add_row(row)
 
+    print("Index Overview")
+    print(x.get_string(sortby="Collection"))
+    print()
 
-    print "Index Overview"
-    print x.get_string(sortby="Collection")
-
-    print
-    print "Top 5 Largest Indexes"
-    x = PrettyTable(["Collection", "Index","% Size", "Index Size"])
+    print("Top 5 Largest Indexes")
+    x = PrettyTable(["Collection", "Index", "% Size", "Index Size"])
     x.align["Collection"] = "l"
     x.align["Index"] = "l"
     x.align["% Size"] = "r"
@@ -156,19 +163,22 @@ def main(options):
     top_five_indexes = sorted(index_size_mapping.keys(), reverse=True)[0:5]
     for size in top_five_indexes:
         x.add_row(index_size_mapping.get(size))
-    print x
-    print
+    print(x)
+    print()
 
-    print "Total Documents:", summary_stats["count"]
-    print "Total Data Size:", convert_bytes(summary_stats["size"])
-    print "Total Index Size:", convert_bytes(summary_stats["indexSize"])
+    print("Total Documents:", summary_stats["count"])
+    print("Total Data Size:", convert_bytes(summary_stats["size"]))
+    print("Total Index Size:", convert_bytes(summary_stats["indexSize"]))
 
     # this is only meaningful if we're running the script on localhost
     if options.host == "localhost":
         ram_headroom = psutil.virtual_memory().total - summary_stats["indexSize"]
-        print "RAM Headroom:", convert_bytes(ram_headroom)
-        print "RAM Used: %s (%s%%)" % (convert_bytes(psutil.virtual_memory().used), psutil.virtual_memory().percent)
-        print "Available RAM Headroom:", convert_bytes((100 - psutil.virtual_memory().percent) / 100 * ram_headroom)
+    print("RAM Headroom:", convert_bytes(ram_headroom))
+    print("RAM Used: %s (%s%%)" % (
+        convert_bytes(psutil.virtual_memory().used), psutil.virtual_memory().percent))
+    print("Available RAM Headroom:",
+          convert_bytes((100 - psutil.virtual_memory().percent) / 100 * ram_headroom))
+
 
 if __name__ == "__main__":
     options = get_cli_options()

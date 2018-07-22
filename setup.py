@@ -1,9 +1,10 @@
 from setuptools import setup, find_packages
 
-version='0.2'
+version = '0.2'
 
 packages = find_packages(exclude=['ez_setup', 'examples', 'tests'])
-print packages
+print
+packages
 setup(
     name='mongodbtools',
     version=version,
@@ -14,7 +15,7 @@ setup(
     license='MIT',
     url='http://github.com/jwilder/mongodb-tools',
     packages=packages,
-    entry_points = """\
+    entry_points="""\
     [console_scripts]
     collection-stats=mongodbtools.collection_stats:main
     index-stats=mongodbtools.index_stats:main

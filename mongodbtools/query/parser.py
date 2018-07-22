@@ -7,71 +7,76 @@
 #
 # Originally from http://pyparsing.wikispaces.com/file/view/simpleSQL.py
 
-from pyparsing import Literal, CaselessLiteral, Word, upcaseTokens, delimitedList, Optional, \
-    Combine, Group, alphas, nums, alphanums, ParseException, Forward, oneOf, quotedString, \
-    ZeroOrMore, restOfLine, Keyword
+import pyparsing
 
-def test( str ):
-    print str,"->"
+
+def test(str):
+    print(str, "->")
     try:
-        tokens = simpleSQL.parseString( str )
-        print "tokens = ",        tokens
-        print "tokens.columns =", tokens.columns
-        print "tokens.tables =",  tokens.tables
-        print "tokens.where =", tokens.where
-    except ParseException, err:
-        print " "*err.loc + "^\n" + err.msg
-        print err
-    print
+        tokens = simpleSQL.parseString(str)
+        print("tokens = ", tokens)
+        print("tokens.columns =", tokens.columns)
+        print("tokens.tables =", tokens.tables)
+        print("tokens.where =", tokens.where)
+    except pyparsing.ParseException as err:
+        print(" " * err.loc + "^\n" + err.msg)
+        print(err)
+    print()
 
 
 # define SQL tokens
-selectStmt = Forward()
-selectToken = Keyword("select", caseless=True)
-fromToken   = Keyword("from", caseless=True)
-whereToken  = Keyword("where", caseless=True)
+selectStmt = pyparsing.Forward()
+selectToken = pyparsing.Keyword("select", caseless=True)
+fromToken = pyparsing.Keyword("from", caseless=True)
+whereToken = pyparsing.Keyword("where", caseless=True)
 
-ident          = Word( alphas+"_", alphanums + "_$." ).setName("identifier")
-columnName     = delimitedList( ident, ".", combine=True )
-columnNameList = Group( delimitedList( columnName ) )
-tableName      = delimitedList( ident, ".", combine=True )
-tableNameList  = Group( delimitedList( tableName ) )
+ident = pyparsing.Word(pyparsing.alphas + "_", pyparsing.alphanums + "_$.").setName("identifier")
+columnName = pyparsing.delimitedList(ident, ".", combine=True)
+columnNameList = pyparsing.Group(pyparsing.delimitedList(columnName))
+tableName = pyparsing.delimitedList(ident, ".", combine=True)
+tableNameList = pyparsing.Group(pyparsing.delimitedList(tableName))
 
-whereExpression = Forward()
-and_ = Keyword("and", caseless=True)
-or_ = Keyword("or", caseless=True)
-in_ = Keyword("in", caseless=True)
+whereExpression = pyparsing.Forward()
+and_ = pyparsing.Keyword("and", caseless=True)
+or_ = pyparsing.Keyword("or", caseless=True)
+in_ = pyparsing.Keyword("in", caseless=True)
 
-E = CaselessLiteral("E")
-binop = oneOf("= != < > >= <= eq ne lt le gt ge", caseless=True)
-arithSign = Word("+-",exact=1)
-realNum = Combine( Optional(arithSign) + ( Word( nums ) + "." + Optional( Word(nums) )  |
-                                                         ( "." + Word(nums) ) ) +
-            Optional( E + Optional(arithSign) + Word(nums) ) )
-intNum = Combine( Optional(arithSign) + Word( nums ) +
-            Optional( E + Optional("+") + Word(nums) ) )
+E = pyparsing.CaselessLiteral("E")
+binop = pyparsing.oneOf("= != < > >= <= eq ne lt le gt ge", caseless=True)
+arithSign = pyparsing.Word("+-", exact=1)
+realNum = pyparsing.Combine(pyparsing.Optional(arithSign) +
+                            (pyparsing.Word(pyparsing.nums) + "." +
+                             pyparsing.Optional(pyparsing.Word(pyparsing.nums)) |
+                             ("." + pyparsing.Word(pyparsing.nums))) +
+                            pyparsing.Optional(E + pyparsing.Optional(arithSign) +
+                                               pyparsing.Word(pyparsing.nums)))
+intNum = pyparsing.Combine(pyparsing.Optional(arithSign) +
+                           pyparsing.Word(pyparsing.nums) +
+                           pyparsing.Optional(E +
+                                              pyparsing.Optional("+") +
+                                              pyparsing.Word(pyparsing.nums)))
 
-columnRval = realNum | intNum | quotedString | columnName # need to add support for alg expressions
-whereCondition = Group(
-    ( columnName + binop + columnRval ) |
-    ( columnName + in_ + "(" + delimitedList( columnRval ) + ")" ) |
-    ( "(" + whereExpression + ")" )
-    )
-whereExpression << whereCondition + ZeroOrMore( ( and_ | or_ ) + whereExpression )
+columnRval = realNum | intNum | pyparsing.quotedString | columnName  # need to add support for
+# alg expressions
+whereCondition = pyparsing.Group(
+    (columnName + binop + columnRval) |
+    (columnName + in_ + "(" + pyparsing.delimitedList(columnRval) + ")") |
+    ("(" + whereExpression + ")")
+)
+whereExpression << whereCondition + pyparsing.ZeroOrMore((and_ | or_) + whereExpression)
 
 # define the grammar
-selectStmt      << ( selectToken +
-                   ( '*' | columnNameList ).setResultsName( "columns" ) +
-                   fromToken +
-                   tableNameList.setResultsName( "tables" ) +
-                   Optional( Group( whereToken + whereExpression ), "" ).setResultsName("where") )
+selectStmt << (selectToken +
+               ('*' | columnNameList).setResultsName("columns") +
+               fromToken +
+               tableNameList.setResultsName("tables") +
+               pyparsing.Optional(pyparsing.Group(whereToken + whereExpression), "").setResultsName("where"))
 
 simpleSQL = selectStmt
 
 # define Oracle comment format, and ignore them
-oracleSqlComment = "--" + restOfLine
-simpleSQL.ignore( oracleSqlComment )
-
+oracleSqlComment = "--" + pyparsing.restOfLine
+simpleSQL.ignore(oracleSqlComment)
 
 """
 test( "SELECT * from XYZZY, ABC" )
@@ -86,7 +91,8 @@ test( "Select" )
 test( "Select &&& frox Sys.dual" )
 test( "Select A from Sys.dual where a in ('RED','GREEN','BLUE')" )
 test( "Select A from Sys.dual where a in ('RED','GREEN','BLUE') and b in (10,20,30)" )
-test( "Select A,b from table1,table2 where table1.id eq table2.id -- test out comparison operators" )
+test( "Select A,b from table1,table2 where table1.id eq table2.id -- test out 
+comparison operators" )
 test( "Select * from User, RemoteAccount where user._id = user.user_id)" )
 
 

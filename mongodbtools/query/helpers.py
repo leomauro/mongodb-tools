@@ -1,5 +1,8 @@
-import bson, struct
+# coding=utf-8
 import itertools
+
+import bson
+import struct
 from bson.errors import InvalidBSON
 
 
@@ -25,6 +28,7 @@ def bson_iter(bson_file):
             raise InvalidBSON("bad eoo")
         yield bson._bson_to_dict(size_str + obj, dict, True)[0]
 
+
 def _deep_get(obj, field):
     parts = field.split(".")
     if len(parts) == 1:
@@ -32,7 +36,7 @@ def _deep_get(obj, field):
 
     last_value = {}
     for part in parts[0:-1]:
-        last_value  = obj.get(part)
+        last_value = obj.get(part)
 
     if not last_value:
         return False
@@ -41,6 +45,7 @@ def _deep_get(obj, field):
         return last_value.get(parts[-1])
     else:
         return getattr(last_value, parts[-1])
+
 
 def groupby(iterator, field):
     """
@@ -56,6 +61,7 @@ def groupby(iterator, field):
         for item in g:
             items.append(item)
     return groups
+
 
 def filter(iterator, field, value):
     """
